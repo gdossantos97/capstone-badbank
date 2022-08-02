@@ -1,76 +1,151 @@
-import React from "react";
-import Card from "../Components/Card";
+import { React, useState, useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { login, reset } from '../features/auth/authSlice'
+import { Spinner } from 'react-bootstrap';
+import { toast } from 'react-toastify';
+import Avatar from '@mui/material/Avatar';
+import Button from '@mui/material/Button';
+import CssBaseline from '@mui/material/CssBaseline';
+import TextField from '@mui/material/TextField';
+import Link from '@mui/material/Link';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
+function Copyright(props) {
+  return (
+    <Typography variant="body2" color="text.secondary" align="center" {...props}>
+      {'Copyright © '}
+      <Link color="inherit" href="https://mui.com/">
+        Your Website
+      </Link>{' '}
+      {new Date().getFullYear()}
+      {'.'}
+    </Typography>
+  );
+}
+
+const theme = createTheme();
 
 
-function Login(){
-    const [show, setShow]     = React.useState(true);
-    const [status, setStatus] = React.useState('');    
-  
-    return (
-      <div>
-      <Card
-        bgcolor="secondary"
-        header="Login"
-        status={status}
-        body={show ? 
-      <LoginForm setShow={setShow} setStatus={setStatus}/> :
-      <LoginMsg setShow={setShow} setStatus={setStatus}/>}
-      />
-      </div>
-    ) 
-  }
-  
-  function LoginMsg(props){
-    return(<>
-      <h5>Success</h5>
-      <button type="submit" 
-        className="btn btn-light" 
-        onClick={() => props.setShow(true)}>
-          Authenticate again
-      </button>
-    </>);
-  }
-  
-  function LoginForm(props){
-    const [email, setEmail]       = React.useState('');
-    const [password, setPassword] = React.useState('');
-  
-    function handle(){
-      fetch(`/account/login/${email}/${password}`)
-      .then(response => response.text())
-      .then(text => {
-          try {
-              const data = JSON.parse(text);
-              props.setStatus('');
-              props.setShow(false);
-              console.log('JSON:', data);
-          } catch(err) {
-              props.setStatus(text)
-              console.log('err:', text);
-          }
-      });
+
+export default function Login() {
+
+  const [error, setError] = useState(null);
+
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  })
+
+  const { email, password } = formData
+
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const { user, isLoading, isError, isSuccess, message } = useSelector((state) => state.auth)
+
+  useEffect(() => {
+    if (isError) {
+      toast.error(message)
+      setError("Invalid credentials")
+      setTimeout(() => setError(''), 1500)
     }
-  
-  
-    return (<>
-  
-      Email<br/>
-      <input type="input" 
-        className="form-control" 
-        placeholder="Enter email" 
-        value={email} 
-        onChange={e => setEmail(e.currentTarget.value)}/><br/>
-  
-      Password<br/>
-      <input type="password" 
-        className="form-control" 
-        placeholder="Enter password" 
-        value={password} 
-        onChange={e => setPassword(e.currentTarget.value)}/><br/>
-  
-      <button type="submit" className="btn btn-light" onClick={handle}>Login</button>
-     
-    </>);
+    if (isSuccess) {
+      alert("You are now logged in")
+      navigate('/')
+    }
+    dispatch(reset())
+  }, [user, isError, isSuccess, message, navigate, dispatch])
+
+  const onChange = (e) => {
+    setFormData((prevState) => ({
+      ...prevState,
+      [e.target.name]: e.target.value,
+    }))
   }
 
-  export default Login;
+  const onSubmit = (e) => {
+    e.preventDefault()
+
+    const userData = {
+      email,
+      password
+    }
+    dispatch(login(userData))
+  }
+
+  if (isLoading) {
+    return <Spinner />
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <Container component="main" maxWidth="xs">
+        <CssBaseline />
+        <Box
+          sx={{
+            marginTop: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+            <LockOutlinedIcon />
+          </Avatar>
+          <Typography component="h1" variant="h5">
+            Sign in
+          </Typography>
+          <Box component="form" onSubmit={onSubmit} noValidate sx={{ mt: 1 }}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="Email Address"
+              name="email"
+              autoComplete="email"
+              autoFocus
+              onChange={onChange}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Password"
+              type="password"
+              id="password"
+              autoComplete="current-password"
+              onChange={onChange}
+            />
+            <Button
+              type="submit"
+              onClick={onSubmit}
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, mb: 2 }}
+            >
+              Sign In
+            </Button>
+            <Grid container>
+              <Grid item xs>
+              </Grid>
+              <Grid item>
+                <Link href="/Register" variant="body2">
+                  {"Don't have an account? Sign Up"}
+                </Link>
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+        <Copyright sx={{ mt: 8, mb: 4 }} />
+      </Container>
+    </ThemeProvider>
+  );
+}

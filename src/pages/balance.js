@@ -1,78 +1,49 @@
-import React from "react";
-import Card from "../Components/Card";
-import { useState } from "react";
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { React, useContext, useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { getTransfers, reset } from '../features/transfers/transferSlice'
+import { UserContext } from '../index'
 
+function Balance() {
 
-function Balance(){
-    const [show, setShow]     = React.useState(true);
-    const [status, setStatus] = React.useState('');  
-  
-    return (
-    <div>
-     <Card
-        bgcolor="info"
-        header="Balance"
-        status={status}
-        body={show ?
-      <BalanceForm setShow={setShow} setStatus={setStatus}/> :
-      <BalanceMsg setShow={setShow} setStatus={setStatus}/>}
-      />
-    </div>
-    )
-  
-  }
-  
-  function BalanceMsg(props){
-    return(<>
-      <h5>Success</h5>
-      <button type="submit" 
-        className="btn btn-light" 
-        onClick={() => {
-          props.setShow(true);
-          props.setStatus('');
-        }}>
-          Check balance again
-      </button>
-    </>);
-  }
-  
-  function BalanceForm(props){
-    const [email, setEmail]   = React.useState('');
-    const [balance, setBalance] = React.useState('');  
-  
-    function handle(){
-      fetch(`/account/findOne/${email}`)
-      .then(response => response.text())
-      .then(text => {
-          try {
-              const data = JSON.parse(text);
-              props.setStatus(text);
-              props.setShow(false);
-              setBalance(user.balance);
-              console.log('JSON:', data);
-          } catch(err) {
-              props.setStatus(text)
-              console.log('err:', text);
-          }
-      });
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const { user } = useSelector((state) => state.auth)
+  const { transfers, isError, message } = useSelector((state) => state.transfers)
+
+  const value = useContext(UserContext);
+  const { balance, setBalance } = value
+
+  useEffect(() => {
+    if (isError) {
+      console.log(message)
     }
-  
-    return (<>
-  
-      Email<br/>
-      <input type="input" 
-        className="form-control" 
-        placeholder="Enter email" 
-        value={email} 
-        onChange={e => setEmail(e.currentTarget.value)}/><br/>
-  
-      <button type="submit" 
-        className="btn btn-light" 
-        onClick={handle}>
-          Check Balance
-      </button>
-  
-    </>);
-  }
+    if (!user) {
+      navigate('/login')
+    }
+    dispatch(getTransfers())
+    return () => {
+      dispatch(reset())
+    }
+  }, [user, navigate, isError, message, dispatch])
 
-export default Balance;
+  const sum = useEffect(() => {
+    let balance = 0;  
+    transfers.forEach(element => {
+    balance += element.text;
+    setBalance(balance)
+  });
+  }, [transfers])
+  
+  return (
+    <div>
+      <section className="heading">
+        <h1 className="balance-page">Welcome {user && user.name}, your current balance is: ${balance}</h1>
+      </section>
+    </div>
+  )
+
+}
+
+export default Balance
